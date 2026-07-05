@@ -412,7 +412,6 @@ function CalendarApp({ user }) {
                 placeholder="Что произошло в этот день?"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                autoFocus
               />
             </div>
 
@@ -446,6 +445,23 @@ function Root() {
   useEffect(() => {
     const unsub = firebase.auth().onAuthStateChanged((u) => setUser(u));
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const updateHeight = () => {
+      document.documentElement.style.setProperty(
+        "--app-height",
+        `${window.visualViewport.height}px`,
+      );
+    };
+
+    window.visualViewport.addEventListener("resize", updateHeight);
+    updateHeight();
+
+    return () =>
+      window.visualViewport.removeEventListener("resize", updateHeight);
   }, []);
 
   if (user === undefined) {
