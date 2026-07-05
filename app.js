@@ -450,18 +450,27 @@ function Root() {
   useEffect(() => {
     if (!window.visualViewport) return;
 
-    const updateHeight = () => {
+    const updateLayout = () => {
+      // 1. Обновляем высоту до видимой
       document.documentElement.style.setProperty(
         "--app-height",
         `${window.visualViewport.height}px`,
       );
+      document.documentElement.style.setProperty(
+        "--app-offset",
+        `${window.visualViewport.offsetTop}px`,
+      );
+      window.scrollTo(0, 0);
     };
 
-    window.visualViewport.addEventListener("resize", updateHeight);
-    updateHeight();
+    window.visualViewport.addEventListener("resize", updateLayout);
+    window.visualViewport.addEventListener("scroll", updateLayout);
+    updateLayout();
 
-    return () =>
-      window.visualViewport.removeEventListener("resize", updateHeight);
+    return () => {
+      window.visualViewport.removeEventListener("resize", updateLayout);
+      window.visualViewport.removeEventListener("scroll", updateLayout);
+    };
   }, []);
 
   if (user === undefined) {
