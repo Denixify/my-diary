@@ -188,6 +188,11 @@ function CalendarApp({ user }) {
     .collection("notes");
 
   useEffect(() => {
+    document.body.classList.toggle("sheet-locked", sheetMounted);
+    return () => document.body.classList.remove("sheet-locked");
+  }, [sheetMounted]);
+
+  useEffect(() => {
     (async () => {
       try {
         const snap = await notesRef.get();
