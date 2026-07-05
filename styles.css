@@ -62,11 +62,13 @@ body {
 
 /* ---------- Login screen ---------- */
 .login-screen {
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 32px 28px;
+  justify-content: flex-start; 
+  padding: 12vh 28px 40px;
 }
 .login-eyebrow {
   color: var(--amber);
@@ -417,6 +419,10 @@ body {
   line-height: 31px;
   color: var(--sheet-ink);
   padding-top: 1px;
+  
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 60px;
 }
 .sheet-textarea::placeholder {
   color: rgba(43, 38, 32, 0.38);
