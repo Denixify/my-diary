@@ -15,12 +15,6 @@ body {
   overscroll-behavior-y: none;
 }
 
-body.sheet-locked {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-}
-
 .diary-root {
   --bg: #12141c;
   --surface: #1b1e29;
@@ -36,11 +30,23 @@ body.sheet-locked {
   --danger: #d17a6a;
   background: var(--bg);
   color: var(--ink);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   max-width: 430px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+.diary-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
 }
@@ -300,7 +306,7 @@ body.sheet-locked {
 
 /* ---------- Bottom sheet ---------- */
 .backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(8, 9, 13, 0);
   transition: background 0.26s ease;
@@ -311,17 +317,14 @@ body.sheet-locked {
 }
 
 .sheet {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  width: auto;
   max-width: 430px;
   margin: 0 auto;
   transform: translateY(100%);
-  height: 78vh;
-  height: 78dvh;
-  max-height: 640px;
+  height: 78%;
   background: var(--sheet-bg);
   color: var(--sheet-ink);
   border-radius: 24px 24px 0 0;

@@ -188,11 +188,6 @@ function CalendarApp({ user }) {
     .collection("notes");
 
   useEffect(() => {
-    document.body.classList.toggle("sheet-locked", sheetMounted);
-    return () => document.body.classList.remove("sheet-locked");
-  }, [sheetMounted]);
-
-  useEffect(() => {
     (async () => {
       try {
         const snap = await notesRef.get();
@@ -297,87 +292,89 @@ function CalendarApp({ user }) {
 
   return (
     <div className="diary-root">
-      {!loaded ? (
-        <div className="loading-wrap">Загрузка дневника…</div>
-      ) : (
-        <>
-          <div className="diary-header">
-            <div>
-              <div className="diary-eyebrow">личный дневник</div>
-              <div className="diary-title">Мой календарь</div>
+      <div className="diary-scroll">
+        {!loaded ? (
+          <div className="loading-wrap">Загрузка дневника…</div>
+        ) : (
+          <>
+            <div className="diary-header">
+              <div>
+                <div className="diary-eyebrow">личный дневник</div>
+                <div className="diary-title">Мой календарь</div>
+              </div>
+              <button
+                className="logout-btn"
+                onClick={() => firebase.auth().signOut()}
+              >
+                Выйти
+              </button>
             </div>
-            <button
-              className="logout-btn"
-              onClick={() => firebase.auth().signOut()}
-            >
-              Выйти
-            </button>
-          </div>
 
-          <div className="month-bar">
-            <button
-              className="month-nav-btn"
-              onClick={() => changeMonth(-1)}
-              aria-label="Предыдущий месяц"
-            >
-              ‹
-            </button>
-            <div className="month-label">
-              {MONTHS[month]} {year}
+            <div className="month-bar">
+              <button
+                className="month-nav-btn"
+                onClick={() => changeMonth(-1)}
+                aria-label="Предыдущий месяц"
+              >
+                ‹
+              </button>
+              <div className="month-label">
+                {MONTHS[month]} {year}
+              </div>
+              <button
+                className="month-nav-btn"
+                onClick={() => changeMonth(1)}
+                aria-label="Следующий месяц"
+              >
+                ›
+              </button>
             </div>
-            <button
-              className="month-nav-btn"
-              onClick={() => changeMonth(1)}
-              aria-label="Следующий месяц"
-            >
-              ›
-            </button>
-          </div>
 
-          <div className="calendar-card">
-            <div className="weekday-row">
-              {WEEKDAYS.map((w) => (
-                <div className="weekday-cell" key={w}>
-                  {w}
-                </div>
-              ))}
-            </div>
-            <div className="day-grid">
-              {cells.map((d, i) => {
-                if (d === null)
+            <div className="calendar-card">
+              <div className="weekday-row">
+                {WEEKDAYS.map((w) => (
+                  <div className="weekday-cell" key={w}>
+                    {w}
+                  </div>
+                ))}
+              </div>
+              <div className="day-grid">
+                {cells.map((d, i) => {
+                  if (d === null)
+                    return (
+                      <div className="day-cell" key={`e${i}`}>
+                        <div className="day-btn empty" />
+                      </div>
+                    );
+                  const k = keyOf(year, month, d);
+                  const hasNote = !!(notes[k] && notes[k].trim() !== "");
+                  const isToday = sameDay(new Date(year, month, d), today);
                   return (
-                    <div className="day-cell" key={`e${i}`}>
-                      <div className="day-btn empty" />
+                    <div className="day-cell" key={k}>
+                      <button
+                        className={`day-btn ${isToday ? "today" : ""}`}
+                        onClick={() => openDay(year, month, d)}
+                      >
+                        <span>{d}</span>
+                        {hasNote ? (
+                          <span className="day-dot" />
+                        ) : (
+                          <span className="day-dot-spacer" />
+                        )}
+                      </button>
                     </div>
                   );
-                const k = keyOf(year, month, d);
-                const hasNote = !!(notes[k] && notes[k].trim() !== "");
-                const isToday = sameDay(new Date(year, month, d), today);
-                return (
-                  <div className="day-cell" key={k}>
-                    <button
-                      className={`day-btn ${isToday ? "today" : ""}`}
-                      onClick={() => openDay(year, month, d)}
-                    >
-                      <span>{d}</span>
-                      {hasNote ? (
-                        <span className="day-dot" />
-                      ) : (
-                        <span className="day-dot-spacer" />
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="hint">
-            Нажмите на дату, чтобы добавить или посмотреть запись
-          </div>
-          <div className="sync-hint">Вы вошли как {user.email}</div>
-        </>
-      )}
+            <div className="hint">
+              Нажмите на дату, чтобы добавить или посмотреть запись
+            </div>
+            <div className="sync-hint">Вы вошли как {user.email}</div>
+          </>
+        )}
+      </div>
 
       {sheetMounted && (
         <>
