@@ -175,6 +175,7 @@ function CalendarApp({ user }) {
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedKey, setSelectedKey] = useState(null);
   const [draft, setDraft] = useState("");
+  const [draftColor, setDraftColor] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMounted, setSheetMounted] = useState(false);
   const [status, setStatus] = useState("");
@@ -193,7 +194,8 @@ function CalendarApp({ user }) {
         const snap = await notesRef.get();
         const map = {};
         snap.forEach((doc) => {
-          map[doc.id] = doc.data().text || "";
+          const d = doc.data();
+          map[doc.id] = { text: d.text || "", color: d.color || null };
         });
         setNotes(map);
       } catch (e) {
@@ -206,7 +208,8 @@ function CalendarApp({ user }) {
   const openDay = (y, m, d) => {
     const k = keyOf(y, m, d);
     setSelectedKey(k);
-    setDraft(notes[k] || "");
+    setDraft(notes[k]?.text || "");
+    setDraftColor(notes[k]?.color || null);
     setSheetMounted(true);
     requestAnimationFrame(() =>
       requestAnimationFrame(() => setSheetOpen(true)),
@@ -220,6 +223,7 @@ function CalendarApp({ user }) {
       setSheetMounted(false);
       setSelectedKey(null);
       setDraft("");
+      setDraftColor(null);
     }, 260);
   };
 
@@ -228,17 +232,19 @@ function CalendarApp({ user }) {
     clearTimeout(statusTimer.current);
     setStatus("saving");
     const next = { ...notes };
+    const textEmpty = draft.trim() === "";
     try {
-      if (draft.trim() === "") {
+      if (textEmpty && !draftColor) {
         delete next[selectedKey];
         await notesRef
           .doc(selectedKey)
           .delete()
           .catch(() => {});
       } else {
-        next[selectedKey] = draft;
+        next[selectedKey] = { text: draft, color: draftColor };
         await notesRef.doc(selectedKey).set({
           text: draft,
+          color: draftColor,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
       }
@@ -257,6 +263,7 @@ function CalendarApp({ user }) {
     delete next[selectedKey];
     setNotes(next);
     setDraft("");
+    setDraftColor(null);
     try {
       await notesRef.doc(selectedKey).delete();
     } catch (e) {
@@ -288,7 +295,12 @@ function CalendarApp({ user }) {
     : null;
 
   const hasExistingNote =
-    selectedKey && notes[selectedKey] && notes[selectedKey].trim() !== "";
+    selectedKey &&
+    ((notes[selectedKey]?.text || "").trim() !== "" ||
+      !!notes[selectedKey]?.color);
+
+  const COLORS = ["red", "yellow", "green"];
+  const COLOR_LABELS = { red: "Красный", yellow: "Жёлтый", green: "Зелёный" };
 
   return (
     <div className="diary-root">
@@ -347,12 +359,18 @@ function CalendarApp({ user }) {
                       </div>
                     );
                   const k = keyOf(year, month, d);
-                  const hasNote = !!(notes[k] && notes[k].trim() !== "");
+                  const noteEntry = notes[k];
+                  const hasNote = !!(
+                    noteEntry &&
+                    noteEntry.text &&
+                    noteEntry.text.trim() !== ""
+                  );
+                  const tagColor = noteEntry?.color || null;
                   const isToday = sameDay(new Date(year, month, d), today);
                   return (
                     <div className="day-cell" key={k}>
                       <button
-                        className={`day-btn ${isToday ? "today" : ""}`}
+                        className={`day-btn ${isToday ? "today" : ""} ${tagColor ? `tag-${tagColor}` : ""}`}
                         onClick={() => openDay(year, month, d)}
                       >
                         <span>{d}</span>
@@ -406,6 +424,22 @@ function CalendarApp({ user }) {
               </button>
             </div>
 
+            <div className="color-picker">
+              <span className="color-picker-label">Отметить день</span>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`color-swatch color-swatch-${c} ${draftColor === c ? "selected" : ""}`}
+                  onClick={() => setDraftColor(draftColor === c ? null : c)}
+                  aria-label={COLOR_LABELS[c]}
+                  aria-pressed={draftColor === c}
+                >
+                  {draftColor === c && <span className="color-check">✓</span>}
+                </button>
+              ))}
+            </div>
+
             <div className="sheet-body">
               <textarea
                 className="sheet-textarea"
@@ -451,7 +485,6 @@ function Root() {
     if (!window.visualViewport) return;
 
     const updateLayout = () => {
-      // 1. Обновляем высоту до видимой
       document.documentElement.style.setProperty(
         "--app-height",
         `${window.visualViewport.height}px`,
