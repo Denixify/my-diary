@@ -188,6 +188,75 @@ function translateAuthError(code, lang) {
   return t.errors[code] || t.fallbackError;
 }
 
+const APP_SALT = "moy-dnevnik-salt-v1";
+
+function bufToBase64(buf) {
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.byteLength; i++)
+    binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function base64ToBuf(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function deriveNotesKey(uid) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(uid + APP_SALT),
+    "PBKDF2",
+    false,
+    ["deriveKey"],
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: enc.encode(APP_SALT),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+async function encryptNoteText(key, text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const cipherBuf = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    enc.encode(text),
+  );
+  return `enc:${bufToBase64(iv)}:${bufToBase64(cipherBuf)}`;
+}
+
+async function decryptNoteText(key, stored) {
+  if (!stored) return "";
+  if (!stored.startsWith("enc:")) return stored;
+  try {
+    const parts = stored.split(":");
+    const iv = base64ToBuf(parts[1]);
+    const data = base64ToBuf(parts[2]);
+    const plainBuf = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      data,
+    );
+    return new TextDecoder().decode(plainBuf);
+  } catch (e) {
+    console.error("Не удалось расшифровать запись", e);
+    return "⚠️";
+  }
+}
+
 function LoginScreen({ lang }) {
   const t = STRINGS[lang] || STRINGS.ru;
   const [mode, setMode] = useState("login");
@@ -298,6 +367,17 @@ function CalendarApp({ user, lang, setLang }) {
   const [status, setStatus] = useState("");
   const statusTimer = useRef(null);
   const today = new Date();
+  const [cryptoKey, setCryptoKey] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    deriveNotesKey(user.uid).then((key) => {
+      if (active) setCryptoKey(key);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user.uid]);
 
   const notesRef = firebase
     .firestore()
@@ -306,21 +386,25 @@ function CalendarApp({ user, lang, setLang }) {
     .collection("notes");
 
   useEffect(() => {
+    if (!cryptoKey) return;
     (async () => {
       try {
         const snap = await notesRef.get();
         const map = {};
-        snap.forEach((doc) => {
-          const d = doc.data();
-          map[doc.id] = { text: d.text || "", color: d.color || null };
-        });
+        await Promise.all(
+          snap.docs.map(async (doc) => {
+            const d = doc.data();
+            const plainText = await decryptNoteText(cryptoKey, d.text || "");
+            map[doc.id] = { text: plainText, color: d.color || null };
+          }),
+        );
         setNotes(map);
       } catch (e) {
         console.error("Не удалось загрузить записи", e);
       }
       setLoaded(true);
     })();
-  }, [user.uid]);
+  }, [user.uid, cryptoKey]);
 
   const openDay = (y, m, d) => {
     const k = keyOf(y, m, d);
@@ -345,7 +429,7 @@ function CalendarApp({ user, lang, setLang }) {
   };
 
   const save = async () => {
-    if (!selectedKey) return;
+    if (!selectedKey || !cryptoKey) return;
     clearTimeout(statusTimer.current);
     setStatus("saving");
     const next = { ...notes };
@@ -359,8 +443,9 @@ function CalendarApp({ user, lang, setLang }) {
           .catch(() => {});
       } else {
         next[selectedKey] = { text: draft, color: draftColor };
+        const encryptedText = await encryptNoteText(cryptoKey, draft);
         await notesRef.doc(selectedKey).set({
-          text: draft,
+          text: encryptedText,
           color: draftColor,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
