@@ -1,44 +1,5 @@
 const { useState, useEffect, useRef, useCallback } = React;
 
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const MONTHS = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
-const MONTHS_GEN = [
-  "января",
-  "февраля",
-  "марта",
-  "апреля",
-  "мая",
-  "июня",
-  "июля",
-  "августа",
-  "сентября",
-  "октября",
-  "ноября",
-  "декабря",
-];
-const WEEKDAYS_FULL = [
-  "воскресенье",
-  "понедельник",
-  "вторник",
-  "среда",
-  "четверг",
-  "пятница",
-  "суббота",
-];
-
 function pad(n) {
   return String(n).padStart(2, "0");
 }
@@ -53,21 +14,182 @@ function sameDay(a, b) {
   );
 }
 
-function translateAuthError(code) {
-  const map = {
-    "auth/invalid-email": "Некорректный email.",
-    "auth/user-not-found": "Такой пользователь не найден.",
-    "auth/wrong-password": "Неверный пароль.",
-    "auth/invalid-credential": "Неверный email или пароль.",
-    "auth/email-already-in-use":
-      "Этот email уже зарегистрирован. Попробуйте войти.",
-    "auth/weak-password": "Пароль слишком короткий (минимум 6 символов).",
-    "auth/missing-password": "Введите пароль.",
-  };
-  return map[code] || "Что-то пошло не так. Попробуйте ещё раз.";
+const LANG_STORAGE_KEY = "diary-lang";
+
+const STRINGS = {
+  ru: {
+    weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    weekdaysFull: [
+      "воскресенье",
+      "понедельник",
+      "вторник",
+      "среда",
+      "четверг",
+      "пятница",
+      "суббота",
+    ],
+    months: [
+      "Январь",
+      "Февраль",
+      "Март",
+      "Апрель",
+      "Май",
+      "Июнь",
+      "Июль",
+      "Август",
+      "Сентябрь",
+      "Октябрь",
+      "Ноябрь",
+      "Декабрь",
+    ],
+    monthsGen: [
+      "января",
+      "февраля",
+      "марта",
+      "апреля",
+      "мая",
+      "июня",
+      "июля",
+      "августа",
+      "сентября",
+      "октября",
+      "ноября",
+      "декабря",
+    ],
+    eyebrow: "личный дневник",
+    title: "Мой календарь",
+    logout: "Выйти",
+    hint: "Нажмите на дату, чтобы добавить или посмотреть запись",
+    loggedInAs: (email) => `Вы вошли как ${email}`,
+    loading: "Загрузка дневника…",
+    loadingApp: "Загрузка…",
+    markDay: "Отметить день",
+    colorNames: { red: "Красный", yellow: "Жёлтый", green: "Зелёный" },
+    placeholder: "Что произошло в этот день?",
+    save: "Сохранить",
+    saving: "Сохраняем…",
+    saved: "Сохранено",
+    delete: "Удалить запись",
+    close: "Закрыть",
+    prevMonth: "Предыдущий месяц",
+    nextMonth: "Следующий месяц",
+    welcomeBack: "С возвращением",
+    createDiary: "Создать дневник",
+    subLogin: "Войдите, чтобы увидеть свои записи.",
+    subSignup: "Придумайте пароль — доступ к записям будет только у вас.",
+    emailLabel: "Email",
+    passwordLabel: "Пароль",
+    passwordPlaceholder: "минимум 6 символов",
+    loginBtn: "Войти",
+    signupBtn: "Зарегистрироваться",
+    pleaseWait: "Подождите…",
+    noAccount: "Нет дневника?",
+    createLink: "Создать",
+    haveAccount: "Уже есть дневник?",
+    loginLink: "Войти",
+    errors: {
+      "auth/invalid-email": "Некорректный email.",
+      "auth/user-not-found": "Такой пользователь не найден.",
+      "auth/wrong-password": "Неверный пароль.",
+      "auth/invalid-credential": "Неверный email или пароль.",
+      "auth/email-already-in-use":
+        "Этот email уже зарегистрирован. Попробуйте войти.",
+      "auth/weak-password": "Пароль слишком короткий (минимум 6 символов).",
+      "auth/missing-password": "Введите пароль.",
+    },
+    fallbackError: "Что-то пошло не так. Попробуйте ещё раз.",
+  },
+  uk: {
+    weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"],
+    weekdaysFull: [
+      "неділя",
+      "понеділок",
+      "вівторок",
+      "середа",
+      "четвер",
+      "п'ятниця",
+      "субота",
+    ],
+    months: [
+      "Січень",
+      "Лютий",
+      "Березень",
+      "Квітень",
+      "Травень",
+      "Червень",
+      "Липень",
+      "Серпень",
+      "Вересень",
+      "Жовтень",
+      "Листопад",
+      "Грудень",
+    ],
+    monthsGen: [
+      "січня",
+      "лютого",
+      "березня",
+      "квітня",
+      "травня",
+      "червня",
+      "липня",
+      "серпня",
+      "вересня",
+      "жовтня",
+      "листопада",
+      "грудня",
+    ],
+    eyebrow: "особистий щоденник",
+    title: "Мій календар",
+    logout: "Вийти",
+    hint: "Натисніть на дату, щоб додати або переглянути запис",
+    loggedInAs: (email) => `Ви увійшли як ${email}`,
+    loading: "Завантаження щоденника…",
+    loadingApp: "Завантаження…",
+    markDay: "Позначити день",
+    colorNames: { red: "Червоний", yellow: "Жовтий", green: "Зелений" },
+    placeholder: "Що сталося цього дня?",
+    save: "Зберегти",
+    saving: "Зберігаємо…",
+    saved: "Збережено",
+    delete: "Видалити запис",
+    close: "Закрити",
+    prevMonth: "Попередній місяць",
+    nextMonth: "Наступний місяць",
+    welcomeBack: "З поверненням",
+    createDiary: "Створити щоденник",
+    subLogin: "Увійдіть, щоб побачити свої записи.",
+    subSignup: "Придумайте пароль — доступ до записів буде лише у вас.",
+    emailLabel: "Email",
+    passwordLabel: "Пароль",
+    passwordPlaceholder: "мінімум 6 символів",
+    loginBtn: "Увійти",
+    signupBtn: "Зареєструватися",
+    pleaseWait: "Зачекайте…",
+    noAccount: "Немає щоденника?",
+    createLink: "Створити",
+    haveAccount: "Вже є щоденник?",
+    loginLink: "Увійти",
+    errors: {
+      "auth/invalid-email": "Некоректний email.",
+      "auth/user-not-found": "Такого користувача не знайдено.",
+      "auth/wrong-password": "Невірний пароль.",
+      "auth/invalid-credential": "Невірний email або пароль.",
+      "auth/email-already-in-use":
+        "Цей email вже зареєстровано. Спробуйте увійти.",
+      "auth/weak-password": "Пароль надто короткий (мінімум 6 символів).",
+      "auth/missing-password": "Введіть пароль.",
+    },
+    fallbackError: "Щось пішло не так. Спробуйте ще раз.",
+  },
+};
+
+function translateAuthError(code, lang) {
+  const t = STRINGS[lang] || STRINGS.ru;
+  return t.errors[code] || t.fallbackError;
 }
 
-function LoginScreen() {
+function LoginScreen({ lang }) {
+  const t = STRINGS[lang] || STRINGS.ru;
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -85,7 +207,7 @@ function LoginScreen() {
         await firebase.auth().createUserWithEmailAndPassword(email, password);
       }
     } catch (err) {
-      setError(translateAuthError(err.code));
+      setError(translateAuthError(err.code, lang));
     } finally {
       setBusy(false);
     }
@@ -93,19 +215,17 @@ function LoginScreen() {
 
   return (
     <div className="diary-root login-screen">
-      <div className="login-eyebrow">личный дневник</div>
+      <div className="login-eyebrow">{t.eyebrow}</div>
       <div className="login-title">
-        {mode === "login" ? "С возвращением" : "Создать дневник"}
+        {mode === "login" ? t.welcomeBack : t.createDiary}
       </div>
       <div className="login-sub">
-        {mode === "login"
-          ? "Войдите, чтобы увидеть свои записи."
-          : "Придумайте пароль — доступ к записям будет только у вас."}
+        {mode === "login" ? t.subLogin : t.subSignup}
       </div>
 
       <form onSubmit={submit}>
         <div className="login-field">
-          <label>Email</label>
+          <label>{t.emailLabel}</label>
           <input
             type="email"
             value={email}
@@ -116,12 +236,12 @@ function LoginScreen() {
           />
         </div>
         <div className="login-field">
-          <label>Пароль</label>
+          <label>{t.passwordLabel}</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="минимум 6 символов"
+            placeholder={t.passwordPlaceholder}
             required
             autoComplete={
               mode === "login" ? "current-password" : "new-password"
@@ -130,37 +250,33 @@ function LoginScreen() {
         </div>
         {error && <div className="login-error">{error}</div>}
         <button className="login-btn" type="submit" disabled={busy}>
-          {busy
-            ? "Подождите…"
-            : mode === "login"
-              ? "Войти"
-              : "Зарегистрироваться"}
+          {busy ? t.pleaseWait : mode === "login" ? t.loginBtn : t.signupBtn}
         </button>
       </form>
 
       <div className="login-switch">
         {mode === "login" ? (
           <>
-            Нет дневника?{" "}
+            {t.noAccount}{" "}
             <button
               onClick={() => {
                 setMode("signup");
                 setError("");
               }}
             >
-              Создать
+              {t.createLink}
             </button>
           </>
         ) : (
           <>
-            Уже есть дневник?{" "}
+            {t.haveAccount}{" "}
             <button
               onClick={() => {
                 setMode("login");
                 setError("");
               }}
             >
-              Войти
+              {t.loginLink}
             </button>
           </>
         )}
@@ -169,7 +285,8 @@ function LoginScreen() {
   );
 }
 
-function CalendarApp({ user }) {
+function CalendarApp({ user, lang, setLang }) {
+  const t = STRINGS[lang] || STRINGS.ru;
   const [notes, setNotes] = useState({});
   const [loaded, setLoaded] = useState(false);
   const [viewDate, setViewDate] = useState(new Date());
@@ -300,43 +417,58 @@ function CalendarApp({ user }) {
       !!notes[selectedKey]?.color);
 
   const COLORS = ["red", "yellow", "green"];
-  const COLOR_LABELS = { red: "Красный", yellow: "Жёлтый", green: "Зелёный" };
 
   return (
     <div className="diary-root">
       <div className="diary-scroll">
         {!loaded ? (
-          <div className="loading-wrap">Загрузка дневника…</div>
+          <div className="loading-wrap">{t.loading}</div>
         ) : (
           <>
             <div className="diary-header">
               <div>
-                <div className="diary-eyebrow">личный дневник</div>
-                <div className="diary-title">Мой календарь</div>
+                <div className="diary-eyebrow">{t.eyebrow}</div>
+                <div className="diary-title">{t.title}</div>
               </div>
-              <button
-                className="logout-btn"
-                onClick={() => firebase.auth().signOut()}
-              >
-                Выйти
-              </button>
+              <div className="header-actions">
+                <div className="lang-switch">
+                  <button
+                    className={`lang-btn ${lang === "ru" ? "active" : ""}`}
+                    onClick={() => setLang("ru")}
+                  >
+                    RU
+                  </button>
+                  <button
+                    className={`lang-btn ${lang === "uk" ? "active" : ""}`}
+                    onClick={() => setLang("uk")}
+                  >
+                    UA
+                  </button>
+                </div>
+                <button
+                  className="logout-btn"
+                  onClick={() => firebase.auth().signOut()}
+                >
+                  {t.logout}
+                </button>
+              </div>
             </div>
 
             <div className="month-bar">
               <button
                 className="month-nav-btn"
                 onClick={() => changeMonth(-1)}
-                aria-label="Предыдущий месяц"
+                aria-label={t.prevMonth}
               >
                 ‹
               </button>
               <div className="month-label">
-                {MONTHS[month]} {year}
+                {t.months[month]} {year}
               </div>
               <button
                 className="month-nav-btn"
                 onClick={() => changeMonth(1)}
-                aria-label="Следующий месяц"
+                aria-label={t.nextMonth}
               >
                 ›
               </button>
@@ -344,7 +476,7 @@ function CalendarApp({ user }) {
 
             <div className="calendar-card">
               <div className="weekday-row">
-                {WEEKDAYS.map((w) => (
+                {t.weekdays.map((w) => (
                   <div className="weekday-cell" key={w}>
                     {w}
                   </div>
@@ -386,10 +518,8 @@ function CalendarApp({ user }) {
               </div>
             </div>
 
-            <div className="hint">
-              Нажмите на дату, чтобы добавить или посмотреть запись
-            </div>
-            <div className="sync-hint">Вы вошли как {user.email}</div>
+            <div className="hint">{t.hint}</div>
+            <div className="sync-hint">{t.loggedInAs(user.email)}</div>
           </>
         )}
       </div>
@@ -406,33 +536,33 @@ function CalendarApp({ user }) {
               <div>
                 <div className="sheet-date-eyebrow">
                   {selectedDateObj
-                    ? WEEKDAYS_FULL[selectedDateObj.getDay()]
+                    ? t.weekdaysFull[selectedDateObj.getDay()]
                     : ""}
                 </div>
                 <div className="sheet-date">
                   {selectedDateObj
-                    ? `${selectedDateObj.getDate()} ${MONTHS_GEN[selectedDateObj.getMonth()]}`
+                    ? `${selectedDateObj.getDate()} ${t.monthsGen[selectedDateObj.getMonth()]}`
                     : ""}
                 </div>
               </div>
               <button
                 className="icon-btn"
                 onClick={closeSheet}
-                aria-label="Закрыть"
+                aria-label={t.close}
               >
                 ✕
               </button>
             </div>
 
             <div className="color-picker">
-              <span className="color-picker-label">Отметить день</span>
+              <span className="color-picker-label">{t.markDay}</span>
               {COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   className={`color-swatch color-swatch-${c} ${draftColor === c ? "selected" : ""}`}
                   onClick={() => setDraftColor(draftColor === c ? null : c)}
-                  aria-label={COLOR_LABELS[c]}
+                  aria-label={t.colorNames[c]}
                   aria-pressed={draftColor === c}
                 >
                   {draftColor === c && <span className="color-check">✓</span>}
@@ -443,7 +573,7 @@ function CalendarApp({ user }) {
             <div className="sheet-body">
               <textarea
                 className="sheet-textarea"
-                placeholder="Что произошло в этот день?"
+                placeholder={t.placeholder}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
               />
@@ -451,11 +581,11 @@ function CalendarApp({ user }) {
 
             <div className="sheet-footer">
               <div className="status-text">
-                {status === "saving" && "Сохраняем…"}
-                {status === "saved" && "✓ Сохранено"}
+                {status === "saving" && t.saving}
+                {status === "saved" && `✓ ${t.saved}`}
                 {!status && hasExistingNote && (
                   <button className="delete-link" onClick={removeNote}>
-                    🗑 Удалить запись
+                    🗑 {t.delete}
                   </button>
                 )}
               </div>
@@ -463,7 +593,7 @@ function CalendarApp({ user }) {
                 className={`save-btn ${status === "saved" ? "saved" : ""}`}
                 onClick={save}
               >
-                ✓ Сохранить
+                ✓ {t.save}
               </button>
             </div>
           </div>
@@ -475,6 +605,21 @@ function CalendarApp({ user }) {
 
 function Root() {
   const [user, setUser] = useState(undefined);
+  const [lang, setLang] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LANG_STORAGE_KEY);
+      return saved === "ru" || saved === "uk" ? saved : "ru";
+    } catch (e) {
+      return "ru";
+    }
+  });
+  const t = STRINGS[lang] || STRINGS.ru;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
+    } catch (e) {}
+  }, [lang]);
 
   useEffect(() => {
     const unsub = firebase.auth().onAuthStateChanged((u) => setUser(u));
@@ -509,11 +654,15 @@ function Root() {
   if (user === undefined) {
     return (
       <div className="diary-root">
-        <div className="loading-wrap">Загрузка…</div>
+        <div className="loading-wrap">{t.loadingApp}</div>
       </div>
     );
   }
-  return user ? <CalendarApp user={user} /> : <LoginScreen />;
+  return user ? (
+    <CalendarApp user={user} lang={lang} setLang={setLang} />
+  ) : (
+    <LoginScreen lang={lang} />
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<Root />);
